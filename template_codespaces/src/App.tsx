@@ -4,6 +4,8 @@ import { MarketplacePage } from "./pages/MarketplacePage";
 import { MerchantPage } from "./pages/MerchantPage";
 import { MyCouponsPage } from "./pages/MyCouponsPage";
 import { OfferDetailPage } from "./pages/OfferDetailPage";
+import { CreateProductPage } from "./pages/CreateProductPage";
+import { MerchantProductScannerPage } from "./pages/MerchantProductScannerPage";
 
 export default function App() {
   return (
@@ -14,8 +16,10 @@ export default function App() {
           <Routes>
             <Route path="/" element={<MarketplacePage />} />
             <Route path="/merchant" element={<MerchantPage />} />
+            <Route path="/merchant-scanner" element={<MerchantProductScannerPage />} />
             <Route path="/coupons" element={<MyCouponsPage />} />
             <Route path="/offer/:pda" element={<OfferDetailPage />} />
+            <Route path="/create-product" element={<CreateProductPage />} />
           </Routes>
         </main>
         <BottomNav />

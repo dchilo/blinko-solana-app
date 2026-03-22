@@ -19,10 +19,14 @@ import {
 import {
   parseBuyCouponInstruction,
   parseCreateOfferInstruction,
+  parseInitializeProductInstruction,
+  parsePurchaseAndMintInstruction,
   parseRedeemCouponInstruction,
   parseRefundExpiredInstruction,
   type ParsedBuyCouponInstruction,
   type ParsedCreateOfferInstruction,
+  type ParsedInitializeProductInstruction,
+  type ParsedPurchaseAndMintInstruction,
   type ParsedRedeemCouponInstruction,
   type ParsedRefundExpiredInstruction,
 } from "../instructions";
@@ -32,6 +36,8 @@ export const VAULT_PROGRAM_ADDRESS =
 
 export enum VaultAccount {
   Offer,
+  ProductAccount,
+  PurchaseRecord,
 }
 
 export function identifyVaultAccount(
@@ -49,6 +55,28 @@ export function identifyVaultAccount(
   ) {
     return VaultAccount.Offer;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([244, 140, 143, 108, 240, 97, 155, 231]),
+      ),
+      0,
+    )
+  ) {
+    return VaultAccount.ProductAccount;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([239, 38, 40, 199, 4, 96, 209, 2]),
+      ),
+      0,
+    )
+  ) {
+    return VaultAccount.PurchaseRecord;
+  }
   throw new Error(
     "The provided account could not be identified as a vault account.",
   );
@@ -57,6 +85,8 @@ export function identifyVaultAccount(
 export enum VaultInstruction {
   BuyCoupon,
   CreateOffer,
+  InitializeProduct,
+  PurchaseAndMint,
   RedeemCoupon,
   RefundExpired,
 }
@@ -86,6 +116,28 @@ export function identifyVaultInstruction(
     )
   ) {
     return VaultInstruction.CreateOffer;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([251, 245, 7, 123, 247, 50, 14, 2]),
+      ),
+      0,
+    )
+  ) {
+    return VaultInstruction.InitializeProduct;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([230, 6, 46, 112, 161, 71, 90, 248]),
+      ),
+      0,
+    )
+  ) {
+    return VaultInstruction.PurchaseAndMint;
   }
   if (
     containsBytes(
@@ -124,6 +176,12 @@ export type ParsedVaultInstruction<
       instructionType: VaultInstruction.CreateOffer;
     } & ParsedCreateOfferInstruction<TProgram>)
   | ({
+      instructionType: VaultInstruction.InitializeProduct;
+    } & ParsedInitializeProductInstruction<TProgram>)
+  | ({
+      instructionType: VaultInstruction.PurchaseAndMint;
+    } & ParsedPurchaseAndMintInstruction<TProgram>)
+  | ({
       instructionType: VaultInstruction.RedeemCoupon;
     } & ParsedRedeemCouponInstruction<TProgram>)
   | ({
@@ -147,6 +205,20 @@ export function parseVaultInstruction<TProgram extends string>(
       return {
         instructionType: VaultInstruction.CreateOffer,
         ...parseCreateOfferInstruction(instruction),
+      };
+    }
+    case VaultInstruction.InitializeProduct: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: VaultInstruction.InitializeProduct,
+        ...parseInitializeProductInstruction(instruction),
+      };
+    }
+    case VaultInstruction.PurchaseAndMint: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: VaultInstruction.PurchaseAndMint,
+        ...parsePurchaseAndMintInstruction(instruction),
       };
     }
     case VaultInstruction.RedeemCoupon: {

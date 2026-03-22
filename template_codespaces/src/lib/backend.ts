@@ -14,20 +14,8 @@ export type OfferRecord = {
 };
 
 function resolveBackendUrl(): string {
-  const envUrl = import.meta.env.VITE_BACKEND_URL?.toString().trim();
-  if (envUrl) return envUrl;
-
-  if (typeof window !== "undefined") {
-    const { hostname, port, protocol } = window.location;
-    if (hostname.endsWith(".app.github.dev")) {
-      const currentPort = port || "5173";
-      const expectedSuffix = `-${currentPort}.app.github.dev`;
-      if (hostname.includes(expectedSuffix)) {
-        return `${protocol}//${hostname.replace(expectedSuffix, "-4000.app.github.dev")}`;
-      }
-    }
-  }
-  return "http://localhost:4000";
+  // Use Vite proxy in development
+  return "/api";
 }
 
 export const BACKEND_URL = resolveBackendUrl();

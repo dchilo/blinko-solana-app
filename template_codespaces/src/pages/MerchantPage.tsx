@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useWalletConnection, useSendTransaction } from "@solana/react-hooks";
 import {
   getProgramDerivedAddress,
@@ -51,6 +52,7 @@ function useAuthToken(
 
 export function MerchantPage() {
   const { wallet, status } = useWalletConnection();
+  const navigate = useNavigate();
   const { send, isSending } = useSendTransaction();
 
   const walletAddress = wallet?.account.address.toString();
@@ -314,6 +316,22 @@ export function MerchantPage() {
             })}
           </div>
         )}
+      </section>
+
+      {/* CTA para scanner */}
+      <section className="rounded-3xl border border-border-low bg-card px-5 py-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="font-bold text-foreground">¿Tenés clientes esperando?</p>
+            <p className="text-xs text-muted">Escanea sus QR para canjear.</p>
+          </div>
+          <button
+            onClick={() => navigate("/merchant-scanner")}
+            className="rounded-2xl bg-green-600 px-4 py-2.5 text-sm font-bold text-white transition active:scale-95"
+          >
+            Scanner 📱
+          </button>
+        </div>
       </section>
     </div>
   );

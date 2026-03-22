@@ -7,7 +7,7 @@ import { CATEGORY_EMOJI } from "../lib/backend";
 
 function QRModal({ coupon, walletAddress, onClose }: { coupon: StoredCoupon; walletAddress: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
-  const qrValue = `kipo:redeem:${coupon.pda}:${walletAddress}`;
+  const qrValue = `kipo:coupon:redeem:${coupon.pda}:${coupon.offerId}:${walletAddress}`;
   const isExpired = Date.now() / 1000 > coupon.expiryTs;
 
   const handleCopy = () => {

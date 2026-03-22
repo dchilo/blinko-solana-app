@@ -8,5 +8,7 @@
 
 export * from "./buyCoupon";
 export * from "./createOffer";
+export * from "./initializeProduct";
+export * from "./purchaseAndMint";
 export * from "./redeemCoupon";
 export * from "./refundExpired";
