@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/* ── Light mode ─────────────────────────────────────── */
+:root {
+  --background:      #f0f2f5;
+  --surface:         #ffffff;
+  --foreground:      #0f172a;
+  --muted:           #64748b;
+  --muted-soft:      #94a3b8;
+
+  --primary:         #1b3a6b;
+  --primary-fg:      #ffffff;
+  --primary-soft:    #e8edf5;
+
+  --border:          #e2e8f0;
+  --border-low:      #e2e8f0;
+
+  --cream:           #f8fafc;
+  --card:            #ffffff;
+  --card-foreground: #0f172a;
+
+  --danger:          #ef4444;
+  --success:         #22c55e;
+}
+
+/* ── Dark mode ──────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background:      #0d1117;
+    --surface:         #161b22;
+    --foreground:      #f0f6fc;
+    --muted:           #8b949e;
+    --muted-soft:      #6e7681;
+
+    --primary:         #2d5aa0;
+    --primary-fg:      #ffffff;
+    --primary-soft:    #1a2535;
+
+    --border:          #30363d;
+    --border-low:      #21262d;
+
+    --cream:           #1c2128;
+    --card:            #161b22;
+    --card-foreground: #f0f6fc;
+
+    --danger:          #f85149;
+    --success:         #3fb950;
+  }
+}
+
+/* ── Tailwind theme tokens ───────────────────────────── */
+@theme inline {
+  --color-background:      var(--background);
+  --color-bg1:             var(--background);
+  --color-surface:         var(--surface);
+  --color-foreground:      var(--foreground);
+  --color-muted:           var(--muted);
+  --color-muted-soft:      var(--muted-soft);
+  --color-primary:         var(--primary);
+  --color-primary-fg:      var(--primary-fg);
+  --color-primary-soft:    var(--primary-soft);
+  --color-border:          var(--border);
+  --color-border-strong:   var(--border);
+  --color-border-low:      var(--border-low);
+  --color-cream:           var(--cream);
+  --color-card:            var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-danger:          var(--danger);
+  --color-success:         var(--success);
+  --font-sans: system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-transparent;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    color-scheme: light dark;
+  }
+}
