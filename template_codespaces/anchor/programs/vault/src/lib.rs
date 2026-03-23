@@ -5,7 +5,7 @@ use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 #[cfg(test)]
 mod tests;
 
-declare_id!("E5esXJ8cfHNa9pSTr5nqqEMpQ81tQ2PBmnHiz5UWF7fN");
+declare_id!("Hk7bLmrkazkubayE3vbKzswkkd5946k7QMsmCdoQfSxW");
 
 #[program]
 pub mod vault {
