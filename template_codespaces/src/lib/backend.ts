@@ -106,31 +106,6 @@ export async function fetchMerchantStats(token: string): Promise<MerchantStats> 
   }
 }
 
-export async function redeemCoupon(
-  token: string,
-  data: {
-    pda: string;
-    offerId: number;
-    amountSol: number;
-    offerTitle: string;
-    customerWallet: string;
-  }
-): Promise<TransactionRecord> {
-  const res = await fetch(`${BACKEND_URL}/redeem`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error ?? "Failed to redeem coupon");
-  }
-  return res.json();
-}
-
 export async function fetchMerchantTransactions(token: string): Promise<TransactionRecord[]> {
   try {
     const res = await fetch(`${BACKEND_URL}/merchant/transactions`, {
