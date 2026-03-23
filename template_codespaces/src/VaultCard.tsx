@@ -34,6 +34,11 @@ export function VaultCard() {
   const [txStatus, setTxStatus] = useState<string | null>(null);
 
   const walletAddress = wallet?.account.address;
+  
+  // Get wallet balance to validate we have enough SOL
+  const walletBalance = useBalance(walletAddress ?? undefined);
+  const walletLamports = walletBalance?.lamports ?? 0n;
+  const walletSol = Number(walletLamports) / Number(LAMPORTS_PER_SOL);
 
   useEffect(() => {
     if (!walletAddress) return;
@@ -77,10 +82,13 @@ export function VaultCard() {
   const offerSol = Number(offerLamports) / Number(LAMPORTS_PER_SOL);
 
   const handleCreateOffer = useCallback(async () => {
-    if (!walletAddress || !offerAddress) return;
+    if (!walletAddress || !offerAddress) {
+      setTxStatus("❌ Wallet info missing. Please connect your wallet.");
+      return;
+    }
 
     if (merchantAddress !== walletAddress.toString()) {
-      setTxStatus("For create_offer, merchant must be the connected wallet.");
+      setTxStatus("❌ Merchant must be the connected wallet.");
       return;
     }
 
@@ -88,8 +96,26 @@ export function VaultCard() {
       const parsedOfferId = Number(offerId);
       const parsedAmount = Number(amountSol);
 
+      // Validation
+      if (!Number.isInteger(parsedOfferId) || parsedOfferId < 0 || parsedOfferId > 2147483647) {
+        setTxStatus("❌ Offer ID must be a valid positive integer.");
+        return;
+      }
+
       if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-        setTxStatus("Amount must be greater than 0.");
+        setTxStatus("❌ Amount must be greater than 0.");
+        return;
+      }
+
+      if (parsedAmount > 1000) {
+        setTxStatus("❌ Amount too large (max 1000 SOL).");
+        return;
+      }
+
+      // Check wallet balance (need ~0.003 SOL for account + amount for offer)
+      const minRequired = 0.01; // Minimum for account + fees
+      if (walletSol < minRequired) {
+        setTxStatus(`❌ Insufficient balance. Have ${walletSol.toFixed(3)} SOL, need at least ${minRequired} SOL.`);
         return;
       }
 
@@ -97,15 +123,23 @@ export function VaultCard() {
         Math.floor(parsedAmount * Number(LAMPORTS_PER_SOL)),
       );
 
-      const expiryTs = BigInt(Math.floor(Date.now() / 1000) + 24 * 60 * 60);
+      const now = Math.floor(Date.now() / 1000);
+      const expiryTs = BigInt(now + 24 * 60 * 60); // 24h from now
+
+      if (expiryTs <= BigInt(now)) {
+        setTxStatus("❌ Expiry must be in the future.");
+        return;
+      }
+
+      setTxStatus("🔄 Creating offer on-chain....");
 
       const instruction = {
         programAddress: VAULT_PROGRAM_ADDRESS,
         accounts: [
-          { address: walletAddress, role: 3 },
-          { address: offerAddress, role: 1 },
-          { address: platformAddress as Address, role: 0 },
-          { address: SYSTEM_PROGRAM_ADDRESS, role: 0 },
+          { address: walletAddress, role: 3 }, // signer, writable
+          { address: offerAddress, role: 1 },  // writable (init)
+          { address: platformAddress as Address, role: 0 }, // readonly
+          { address: SYSTEM_PROGRAM_ADDRESS, role: 0 }, // readonly
         ],
         data: getCreateOfferInstructionDataEncoder().encode({
           offerId: BigInt(parsedOfferId),
@@ -115,15 +149,34 @@ export function VaultCard() {
         }),
       };
 
-      setTxStatus("Awaiting signature for create_offer...");
       const signature = await send({ instructions: [instruction] });
-      setTxStatus(`Offer created. Signature: ${signature?.slice(0, 20)}...`);
+      setTxStatus(`✅ Offer created! Sig: ${signature?.slice(0, 16)}...`);
+      
+      // Reset form after success
+      setTimeout(() => {
+        setOfferId((String(Date.now()).slice(-6)));
+        setAmountSol("0.1");
+      }, 500);
     } catch (err) {
-      setTxStatus(
-        `Create offer failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-      );
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      
+      // Parse common errors
+      if (errorMsg.includes("insufficient")) {
+        setTxStatus("❌ Insufficient SOL. Need ~0.003 SOL for account creation.");
+      } else if (errorMsg.includes("already")) {
+        setTxStatus("❌ Offer ID already exists. Try a different ID.");
+      } else if (errorMsg.includes("0x1")) {
+        setTxStatus("❌ Invalid expiry. Must be in the future.");
+      } else if (errorMsg.includes("0x2")) {
+        setTxStatus("❌ Invalid amount. Must be > 0.");
+      } else if (errorMsg.includes("transaction plan failed")) {
+        setTxStatus("❌ Transaction failed. Check: SOL balance, unique Offer ID, expiry date.");
+      } else {
+        setTxStatus(`❌ Error: ${errorMsg}`);
+      }
+      console.error("Create offer error:", err);
     }
-  }, [walletAddress, offerAddress, merchantAddress, offerId, amountSol, platformAddress, send]);
+  }, [walletAddress, offerAddress, merchantAddress, offerId, amountSol, platformAddress, walletSol, send]);
 
   const handleBuyCoupon = useCallback(async () => {
     if (!walletAddress || !offerAddress) return;
@@ -240,8 +293,19 @@ export function VaultCard() {
       </div>
 
       <div className="rounded-xl border border-border-low bg-cream/30 p-4 text-sm">
-        <p className="text-xs uppercase tracking-wide text-muted">Derived Offer PDA</p>
-        <p className="mt-1 truncate font-mono text-xs">{offerAddress ?? "Invalid inputs"}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Wallet Balance</p>
+            <p className="mt-1 font-mono text-sm font-bold">
+              {walletSol.toFixed(4)} SOL
+              {walletSol < 0.01 && <span className="ml-2 text-red-500">⚠️ Low balance</span>}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs uppercase tracking-wide text-muted">Derived Offer PDA</p>
+            <p className="mt-1 truncate font-mono text-xs">{offerAddress ?? "Invalid inputs"}</p>
+          </div>
+        </div>
         <p className="mt-2 text-xs text-muted">Offer account lamports: {offerSol.toFixed(6)} SOL</p>
       </div>
 

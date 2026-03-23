@@ -32,7 +32,21 @@ export type OfferRecord = {
   createdAt: number;
 };
 
+export type TransactionRecord = {
+  id: string;
+  merchantWallet: string;
+  customerWallet: string;
+  offerId: number;
+  offerTitle: string;
+  amountSol: number;
+  merchantEarningSol: number;
+  platformFeeSol: number;
+  timestamp: number;
+  status: "completed" | "pending" | "failed";
+};
+
 const offers = new Map<string, OfferRecord>(); // key = pda
+const transactions = new Map<string, TransactionRecord>(); // key = transaction id
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -55,6 +69,14 @@ const createOfferSchema = z.object({
   category: z.enum(["food", "retail", "services", "entertainment", "other"]),
   expiryTs: z.number().int().positive(),
   platformFeeBps: z.number().int().min(0).max(10000).default(500),
+});
+
+const redeemSchema = z.object({
+  pda: z.string().min(32),
+  offerId: z.number().int().nonnegative(),
+  amountSol: z.number().positive(),
+  offerTitle: z.string().min(1),
+  customerWallet: z.string().min(32),
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -203,6 +225,110 @@ app.delete("/offers/:pda", async (request, reply) => {
   const wallet = getWalletFromToken(request.headers.authorization);
   if (!wallet) return reply.code(401).send({ error: "Unauthorized" });
 
+
+// ─── Redeem routes (registrar canjes) ──────────────────────────────────────────
+
+app.post("/redeem", async (request, reply) => {
+  const wallet = getWalletFromToken(request.headers.authorization);
+  if (!wallet) return reply.code(401).send({ error: "Unauthorized" });
+
+  const parsed = redeemSchema.safeParse(request.body);
+  if (!parsed.success) return reply.code(400).send({ error: "Invalid payload", details: parsed.error.flatten() });
+
+  const data = parsed.data;
+  const transactionId = `tx_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+  // Calcular comisión (5% por defecto)
+  const platformFeeBps = 500; // 5%
+  const platformFeeSol = data.amountSol * (platformFeeBps / 10000);
+  const merchantEarningSol = data.amountSol - platformFeeSol;
+
+  const transaction: TransactionRecord = {
+    id: transactionId,
+    merchantWallet: wallet,
+    customerWallet: data.customerWallet,
+    offerId: data.offerId,
+    offerTitle: data.offerTitle,
+    amountSol: data.amountSol,
+    merchantEarningSol,
+    platformFeeSol,
+    timestamp: Date.now(),
+    status: "completed",
+  };
+
+  transactions.set(transactionId, transaction);
+  return reply.code(201).send(transaction);
+});
+
+// ─── Dashboard routes ──────────────────────────────────────────────────────────
+
+app.get("/merchant/stats", async (request, reply) => {
+  const wallet = getWalletFromToken(request.headers.authorization);
+  if (!wallet) return reply.code(401).send({ error: "Unauthorized" });
+
+  const merchantTxs = Array.from(transactions.values()).filter((tx) => tx.merchantWallet === wallet);
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayTxs = merchantTxs.filter((tx) => new Date(tx.timestamp) >= today);
+
+  // Calcular totales
+  const totalIncomeSol = merchantTxs.reduce((sum, tx) => sum + tx.merchantEarningSol, 0);
+  const totalCouponsRedeemed = merchantTxs.length;
+  const couponsRedeemedToday = todayTxs.length;
+  const totalPlatformFee = merchantTxs.reduce((sum, tx) => sum + tx.platformFeeSol, 0);
+
+  // Generar datos de últimos 7 días
+  const weeklyEarnings = generateWeeklyEarnings(merchantTxs);
+
+  return reply.send({
+    totalIncomeSol,
+    totalCouponsRedeemed,
+    couponsRedeemedToday,
+    totalPlatformFee,
+    weeklyEarnings,
+  });
+});
+
+app.get("/merchant/transactions", async (request, reply) => {
+  const wallet = getWalletFromToken(request.headers.authorization);
+  if (!wallet) return reply.code(401).send({ error: "Unauthorized" });
+
+  const merchantTxs = Array.from(transactions.values())
+    .filter((tx) => tx.merchantWallet === wallet)
+    .sort((a, b) => b.timestamp - a.timestamp);
+
+  return reply.send(merchantTxs);
+});
+
+// ─── Helpers para stats ────────────────────────────────────────────────────────
+
+function generateWeeklyEarnings(txs: TransactionRecord[]): Array<{ day: string; earnings: number }> {
+  const days = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+  const today = new Date();
+  const result = [];
+
+  // Últimos 7 días
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    date.setHours(0, 0, 0, 0);
+
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    const dayTxs = txs.filter(
+      (tx) => new Date(tx.timestamp) >= date && new Date(tx.timestamp) < nextDate
+    );
+
+    const earnings = dayTxs.reduce((sum, tx) => sum + tx.merchantEarningSol, 0);
+    const dayName = i === 0 ? "Hoy" : days[date.getDay()];
+
+    result.push({ day: dayName, earnings });
+  }
+
+  return result;
+}
   const { pda } = request.params as { pda: string };
   const offer = offers.get(pda);
   if (!offer) return reply.code(404).send({ error: "Offer not found" });

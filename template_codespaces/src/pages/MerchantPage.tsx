@@ -182,13 +182,13 @@ export function MerchantPage() {
     <div className="mx-auto max-w-2xl space-y-5 px-4 py-6">
 
       <div>
-        <h1 className="text-2xl font-black text-foreground">Panel del Comercio</h1>
-        <p className="mt-1 text-sm text-muted">Creá ofertas con escrow on-chain.</p>
+        <h1 className="text-3xl font-black text-foreground">Mis Ofertas</h1>
+        <p className="mt-2 text-sm text-muted">Gestiona tus cupones y promociones.</p>
       </div>
 
       {/* ── Formulario ── */}
-      <section className="space-y-3 rounded-3xl border border-border-low bg-card p-5 shadow-sm">
-        <h2 className="font-bold text-foreground">Nueva oferta</h2>
+      <section className="space-y-3 rounded-3xl border border-border-low bg-card p-6 shadow-lg">
+        <h2 className="font-bold text-foreground">Crear Nueva Oferta</h2>
 
         <input
           className={inputClass}
@@ -273,8 +273,8 @@ export function MerchantPage() {
       </section>
 
       {/* ── Mis ofertas ── */}
-      <section className="space-y-3">
-        <h2 className="font-bold text-foreground">Mis ofertas publicadas</h2>
+      <section className="space-y-5">
+        <h2 className="font-bold text-foreground">Publicadas</h2>
 
         {loadingOffers ? (
           <div className="space-y-3">
@@ -287,12 +287,12 @@ export function MerchantPage() {
             Todavía no publicaste ninguna oferta.
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {myOffers.map((offer) => {
               const isExpired = Date.now() / 1000 > offer.expiryTs;
               return (
-                <div key={offer.pda} className="flex items-center gap-3 rounded-3xl border border-border-low bg-card px-5 py-4 shadow-sm">
-                  <span className="text-2xl">{CATEGORY_EMOJI[offer.category]}</span>
+                <div key={offer.pda} className="flex items-center gap-4 rounded-3xl border border-border-low bg-card px-5 py-4 shadow-lg">
+                  <span className="text-4xl">{CATEGORY_EMOJI[offer.category]}</span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-foreground truncate">{offer.title}</p>

@@ -1,14 +1,6 @@
 import { useCallback, useState, useRef } from "react";
 import { useWalletConnection, useSendTransaction } from "@solana/react-hooks";
-import { type Address } from "@solana/kit";
 import jsQR from "jsqr";
-import { VAULT_PROGRAM_ADDRESS } from "../generated/vault";
-import { 
-  getProductAccountPda, 
-  getPurchaseRecordPda, 
-  getNftMintPda, 
-  getNftCustodyAccountPda 
-} from "../lib/pdas";
 
 type ScannedQR = {
   type: "coupon" | "product";

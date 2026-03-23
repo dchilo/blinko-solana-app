@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useWalletConnection, useSendTransaction } from "@solana/react-hooks";
 import { getInitializeProductInstruction } from "../generated/vault/instructions/initializeProduct";
 import { getProductAccountPda } from "../lib/pdas";
-import { VAULT_PROGRAM_ADDRESS } from "../generated/vault/programs";
 
 export function CreateProductPage() {
   const { wallet } = useWalletConnection();

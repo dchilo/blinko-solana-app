@@ -61,14 +61,14 @@ export function MarketplacePage() {
   const expiredOffers = filteredOffers.filter((o) => Date.now() / 1000 > o.expiryTs);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 px-4 py-6">
+    <div className="mx-auto max-w-2xl space-y-8 px-4 py-6">
 
       {/* Hero */}
       <div>
-        <h1 className="text-2xl font-black leading-tight text-foreground">
+        <h1 className="text-3xl font-black leading-tight text-foreground">
           Marketplace en Solana<br />Cupones y NFTs
         </h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-2 text-sm text-muted">
           Comprá cupones seguros o tickets NFT con escrow on-chain.
         </p>
       </div>
@@ -77,7 +77,7 @@ export function MarketplacePage() {
       <div className="flex gap-2">
         <button
           onClick={() => setTab("offers")}
-          className={`rounded-full px-4 py-2 text-sm font-semibold transition active:scale-95 ${
+          className={`rounded-full px-5 py-2.5 text-sm font-bold transition active:scale-95 ${
             tab === "offers"
               ? "bg-primary text-primary-fg shadow-sm"
               : "border border-border-low bg-card text-muted"
@@ -87,7 +87,7 @@ export function MarketplacePage() {
         </button>
         <button
           onClick={() => setTab("products")}
-          className={`rounded-full px-4 py-2 text-sm font-semibold transition active:scale-95 ${
+          className={`rounded-full px-5 py-2.5 text-sm font-bold transition active:scale-95 ${
             tab === "products"
               ? "bg-primary text-primary-fg shadow-sm"
               : "border border-border-low bg-card text-muted"
@@ -150,9 +150,9 @@ export function MarketplacePage() {
 
       {/* Loading skeletons */}
       {loading && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-72 animate-pulse rounded-3xl border border-border-low bg-card" />
+            <div key={i} className="h-24 animate-pulse rounded-2xl border border-border-low bg-card" />
           ))}
         </div>
       )}
@@ -168,11 +168,11 @@ export function MarketplacePage() {
       {tab === "offers" && !loading && !error && (
         <>
           {activeOffers.length > 0 && (
-            <section className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+            <section className="space-y-5">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted">
                 {activeOffers.length} oferta{activeOffers.length !== 1 ? "s" : ""} disponible{activeOffers.length !== 1 ? "s" : ""}
               </p>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-4">
                 {activeOffers.map((offer) => (
                   <OfferCard key={offer.pda} offer={offer} />
                 ))}
@@ -180,9 +180,9 @@ export function MarketplacePage() {
             </section>
           )}
           {expiredOffers.length > 0 && (
-            <section className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Expiradas</p>
-              <div className="grid gap-4 sm:grid-cols-2">
+            <section className="space-y-5">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted">Expiradas</p>
+              <div className="space-y-4">
                 {expiredOffers.map((offer) => (
                   <OfferCard key={offer.pda} offer={offer} />
                 ))}
@@ -215,11 +215,11 @@ export function MarketplacePage() {
       {tab === "products" && !loading && !error && (
         <>
           {products.length > 0 && (
-            <section className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+            <section className="space-y-5">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted">
                 {products.length} producto{products.length !== 1 ? "s" : ""} disponible{products.length !== 1 ? "s" : ""}
               </p>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-4">
                 {products.map((product) => (
                   <ProductCard key={product.pda} product={product} onPurchase={() => {
                     // Refresh products

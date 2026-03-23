@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useWalletConnection, useSendTransaction } from "@solana/react-hooks";
 import { getPurchaseAndMintInstruction } from "../generated/vault/instructions/purchaseAndMint";
 import { getProductAccountPda, getPurchaseRecordPda, getNftMintPda, getNftCustodyAccountPda } from "../lib/pdas";
-import { VAULT_PROGRAM_ADDRESS } from "../generated/vault/programs";
 
 type Product = {
   pda: string;
@@ -69,45 +68,41 @@ export function ProductCard({ product, onPurchase }: Props) {
   const priceSol = product.price / 1e9;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-3xl border border-border-low bg-card shadow-sm">
-      {/* Header */}
-      <div className="flex h-28 items-center justify-center bg-green-100">
-        <span className="text-5xl">🎟️</span>
+    <div className="flex items-center gap-4 rounded-3xl border border-border-low bg-card px-5 py-4 shadow-lg transition">
+      {/* Emoji */}
+      <div className="shrink-0 text-4xl">🎟️</div>
+
+      {/* Info */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-lg text-foreground truncate">{product.name}</h3>
+            <p className="text-sm text-muted line-clamp-1 mt-0.5">{product.description}</p>
+          </div>
+          {available === 0 && (
+            <span className="shrink-0 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-600 dark:bg-red-900/20 dark:text-red-400">
+              Agotado
+            </span>
+          )}
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-lg font-bold text-foreground">
+            {priceSol} <span className="text-sm font-semibold text-muted">SOL</span>
+          </p>
+          <p className="text-xs text-muted">{available} disponibles</p>
+        </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        {/* Title */}
-        <h3 className="font-bold leading-snug text-foreground">{product.name}</h3>
-        <p className="line-clamp-2 text-xs text-muted">{product.description}</p>
-
-        {/* Price and Stock */}
-        <p className="mt-1 text-2xl font-black text-foreground">
-          {priceSol}
-          <span className="ml-1 text-sm font-semibold text-muted">SOL</span>
-        </p>
-        <p className="text-xs text-muted">
-          Disponible: {available} / {product.stock}
-        </p>
-
-        {/* Authority */}
-        <p className="truncate font-mono text-xs text-muted">
-          Empresa: {product.authority.slice(0, 6)}...{product.authority.slice(-4)}
-        </p>
-
-        {/* Action */}
-        {available > 0 && (
-          <button
-            onClick={handlePurchase}
-            disabled={loading}
-            className="mt-auto w-full rounded-2xl bg-primary py-3 text-sm font-bold text-primary-fg transition active:scale-95 disabled:opacity-50"
-          >
-            {loading ? "Comprando..." : "Comprar NFT Ticket"}
-          </button>
-        )}
-        {available === 0 && (
-          <p className="mt-auto text-center text-sm text-muted">Agotado</p>
-        )}
-      </div>
+      {/* Action Button */}
+      {available > 0 && (
+        <button
+          onClick={handlePurchase}
+          disabled={loading}
+          className="shrink-0 rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-primary-fg transition active:scale-95 disabled:opacity-50"
+        >
+          {loading ? "..." : "Comprar"}
+        </button>
+      )}
     </div>
   );
 }
