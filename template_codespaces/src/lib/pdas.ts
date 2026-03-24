@@ -1,46 +1,49 @@
-import { Address, getAddressEncoder, createAddressWithSeed } from "@solana/kit";
-import { VAULT_PROGRAM_ADDRESS } from "../generated/vault/programs";
-
-export function getProductAccountPda(authority: Address, productId: string): Address {
-  return createAddressWithSeed({
+import { Address, getAddressEncoder, getProgramDerivedAddress } from '@solana/kit';
+import { VAULT_PROGRAM_ADDRESS } from '../generated/vault/index';
+export async function getProductAccountPda(authority: Address, productId: string): Promise<Address> {
+  const [address] = await getProgramDerivedAddress({
     programAddress: VAULT_PROGRAM_ADDRESS,
     seeds: [
-      getAddressEncoder().encode(new TextEncoder().encode("product")),
+      new TextEncoder().encode("product"),
       getAddressEncoder().encode(authority),
-      getAddressEncoder().encode(new TextEncoder().encode(productId)),
+      new TextEncoder().encode(productId),
     ],
   });
+  return address;
 }
 
-export function getPurchaseRecordPda(productAccount: Address, buyer: Address): Address {
-  return createAddressWithSeed({
+export async function getPurchaseRecordPda(productAccount: Address, buyer: Address): Promise<Address> {
+  const [address] = await getProgramDerivedAddress({
     programAddress: VAULT_PROGRAM_ADDRESS,
     seeds: [
-      getAddressEncoder().encode(new TextEncoder().encode("purchase")),
+      new TextEncoder().encode("purchase"),
       getAddressEncoder().encode(productAccount),
       getAddressEncoder().encode(buyer),
     ],
   });
+  return address;
 }
 
-export function getNftMintPda(productAccount: Address, buyer: Address): Address {
-  return createAddressWithSeed({
+export async function getNftMintPda(productAccount: Address, buyer: Address): Promise<Address> {
+  const [address] = await getProgramDerivedAddress({
     programAddress: VAULT_PROGRAM_ADDRESS,
     seeds: [
-      getAddressEncoder().encode(new TextEncoder().encode("nft_mint")),
+      new TextEncoder().encode("nft_mint"),
       getAddressEncoder().encode(productAccount),
       getAddressEncoder().encode(buyer),
     ],
   });
+  return address;
 }
 
-export function getNftCustodyAccountPda(companyWallet: Address, nftMint: Address): Address {
-  return createAddressWithSeed({
+export async function getNftCustodyAccountPda(companyWallet: Address, nftMint: Address): Promise<Address> {
+  const [address] = await getProgramDerivedAddress({
     programAddress: VAULT_PROGRAM_ADDRESS,
     seeds: [
-      getAddressEncoder().encode(new TextEncoder().encode("nft_custody")),
+      new TextEncoder().encode("nft_custody"),
       getAddressEncoder().encode(companyWallet),
       getAddressEncoder().encode(nftMint),
     ],
   });
+  return address;
 }

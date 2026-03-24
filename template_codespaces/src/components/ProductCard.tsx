@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useWalletConnection, useSendTransaction } from "@solana/react-hooks";
+import { Address } from "@solana/kit";
 import { getPurchaseAndMintInstruction } from "../generated/vault/instructions/purchaseAndMint";
-import { getProductAccountPda, getPurchaseRecordPda, getNftMintPda, getNftCustodyAccountPda } from "../lib/pdas";
+import { 
+  getProductAccountPda, 
+  getPurchaseRecordPda, 
+  getNftMintPda, 
+  getNftCustodyAccountPda 
+} from "../lib/pdas";
 
 type Product = {
   pda: string;
@@ -22,57 +28,69 @@ export function ProductCard({ product, onPurchase }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handlePurchase = async () => {
-    if (!wallet) return;
+    if (!wallet || !wallet.account) {
+      alert("Por favor, conecta tu wallet");
+      return;
+    }
 
     setLoading(true);
     try {
-      const productAccountPda = getProductAccountPda({
-        authority: product.authority as any,
-        productId: product.productId,
-      });
-      const purchaseRecordPda = getPurchaseRecordPda({
-        productAccount: productAccountPda,
-        buyer: wallet.address,
-      });
-      const nftMintPda = getNftMintPda({
-        productAccount: productAccountPda,
-        buyer: wallet.address,
-      });
-      const nftCustodyAccountPda = getNftCustodyAccountPda({
-        companyWallet: product.authority as any,
-        nftMint: nftMintPda,
-      });
+      const buyerAddress = wallet.account.address;
+      const merchantAddress = product.authority as Address;
 
+      // 1. Obtener PDAs con await
+      const productAccountPda = await getProductAccountPda(
+        merchantAddress,
+        product.productId
+      );
+
+      const purchaseRecordPda = await getPurchaseRecordPda(
+        productAccountPda,
+        buyerAddress
+      );
+
+      const nftMintPda = await getNftMintPda(
+        productAccountPda,
+        buyerAddress
+      );
+
+      const nftCustodyAccountPda = await getNftCustodyAccountPda(
+        merchantAddress,
+        nftMintPda
+      );
+
+      // 2. Construcción de la instrucción corregida
       const instruction = getPurchaseAndMintInstruction({
-        buyer: wallet,
-        companyWallet: product.authority as any,
+        buyer: wallet as any, 
+        companyWallet: merchantAddress,
         productAccount: productAccountPda,
         nftMint: nftMintPda,
         nftCustodyAccount: nftCustodyAccountPda,
         purchaseRecord: purchaseRecordPda,
-        placeholder: 0,
+        // ✅ AQUÍ ESTÁ EL CAMBIO: Agregamos el campo obligatorio
+        placeholder: 0, 
       });
 
+      // 3. Envío de transacción
       const signature = await send({ instructions: [instruction] });
       console.log("Purchase successful:", signature);
       onPurchase();
+      alert("¡Compra exitosa! NFT emitido.");
     } catch (error) {
       console.error("Purchase failed:", error);
-      alert("Error al comprar el producto");
+      alert("Error al comprar el producto. Revisa la consola.");
     } finally {
       setLoading(false);
     }
   };
 
   const available = product.stock - product.sold;
-  const priceSol = product.price / 1e9;
+  const priceSol = product.price / 10 ** 9;
 
   return (
     <div className="flex items-center gap-4 rounded-3xl border border-border-low bg-card px-5 py-4 shadow-lg transition">
-      {/* Emoji */}
       <div className="shrink-0 text-4xl">🎟️</div>
 
-      {/* Info */}
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -93,7 +111,6 @@ export function ProductCard({ product, onPurchase }: Props) {
         </div>
       </div>
 
-      {/* Action Button */}
       {available > 0 && (
         <button
           onClick={handlePurchase}

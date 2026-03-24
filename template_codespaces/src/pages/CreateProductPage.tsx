@@ -20,35 +20,42 @@ export function CreateProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!wallet) return;
+    
+    // Verificamos que la wallet y la cuenta estén conectadas
+    if (!wallet || !wallet.account) {
+      alert("Por favor, conecta tu wallet");
+      return;
+    }
 
     setLoading(true);
     try {
-      const productAccountPda = getProductAccountPda({
-        authority: wallet.address,
-        productId: form.productId,
-      });
+      // ✅ Usamos await y pasamos los argumentos individuales
+      const productAccountPda = await getProductAccountPda(
+        wallet.account.address,
+        form.productId
+      );
 
-      const instruction = getInitializeProductInstruction({
-        authority: wallet,
+      // ✅ Usamos 'wallet as any' para satisfacer el tipo TransactionSigner
+     const instruction = getInitializeProductInstruction({
+        authority: wallet as any,
         productAccount: productAccountPda,
-        params: {
-          productId: form.productId,
-          name: form.name,
-          description: form.description,
-          metadataUri: form.metadataUri,
-          price: BigInt(Math.floor(parseFloat(form.price) * 1e9)),
-          paymentMint: null,
-          stock: parseInt(form.stock),
-        },
+        // Campos directos:
+        productId: form.productId,
+        name: form.name,
+        description: form.description,
+        metadataUri: form.metadataUri,
+        price: BigInt(Math.floor(parseFloat(form.price) * 1e9)),
+        paymentMint: null,
+        stock: parseInt(form.stock),
       });
 
       const signature = await send({ instructions: [instruction] });
       console.log("Product created:", signature);
+      alert("¡Producto creado con éxito!");
       navigate("/");
     } catch (error) {
       console.error("Error creating product:", error);
-      alert("Error al crear el producto");
+      alert("Error al crear el producto. Revisa la consola para más detalles.");
     } finally {
       setLoading(false);
     }
