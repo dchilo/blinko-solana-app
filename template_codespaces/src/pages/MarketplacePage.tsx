@@ -106,17 +106,17 @@ export function MarketplacePage() {
 
       {/* CTA para merchants */}
       {status === "connected" && tab === "offers" && (
-        <div className="flex items-center justify-between rounded-3xl border border-border-low bg-card px-5 py-4 shadow-sm">
-          <div>
+        <div className="">
+          {/* <div>
             <p className="font-bold text-foreground">¿Sos un comercio?</p>
             <p className="text-xs text-muted">Publicá ofertas con escrow.</p>
-          </div>
-          <button
+          </div> */}
+          {/* <button
             onClick={() => navigate("/merchant")}
             className="rounded-2xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-fg transition active:scale-95"
           >
             Crear oferta
-          </button>
+          </button> */}
         </div>
       )}
 
