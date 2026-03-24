@@ -7,7 +7,7 @@ import { CATEGORY_EMOJI } from "../lib/backend";
 
 function QRModal({ coupon, walletAddress, onClose }: { coupon: StoredCoupon; walletAddress: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
-  const qrValue = `kipo:redeem:${coupon.pda}:${walletAddress}`;
+  const qrValue = `kipo:coupon:redeem:${coupon.pda}:${coupon.offerId}:${walletAddress}`;
   const isExpired = Date.now() / 1000 > coupon.expiryTs;
 
   const handleCopy = () => {
@@ -83,42 +83,45 @@ function CouponCard({ coupon, walletAddress }: { coupon: StoredCoupon; walletAdd
       {showQR && (
         <QRModal coupon={coupon} walletAddress={walletAddress} onClose={() => setShowQR(false)} />
       )}
-      <div className={`rounded-3xl border p-5 transition ${isExpired ? "border-border-low bg-card opacity-60" : "border-border-low bg-card shadow-sm"}`}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{CATEGORY_EMOJI[coupon.category]}</span>
-              <p className="font-semibold text-foreground truncate">{coupon.title}</p>
-            </div>
-            <p className="mt-1 text-sm text-muted line-clamp-2">{coupon.description}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border border-border-low px-3 py-1 text-xs font-semibold text-foreground">
-                {coupon.amountSol} SOL
+      <div className={`flex items-center gap-4 rounded-3xl border px-5 py-4 transition ${isExpired ? "border-border-low bg-card opacity-60" : "border-border-low bg-card shadow-lg"}`}>
+        {/* Emoji */}
+        <div className="shrink-0 text-4xl">{CATEGORY_EMOJI[coupon.category]}</div>
+
+        {/* Info */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-lg text-foreground truncate">{coupon.title}</h3>
+            {isExpired && (
+              <span className="shrink-0 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                Vencido
               </span>
-              <span className={`rounded-full px-3 py-1 text-xs font-medium ${isExpired ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"}`}>
-                {isExpired ? "Expirado" : `Vence ${expiryDate}`}
-              </span>
-            </div>
+            )}
+          </div>
+          <p className="text-sm text-muted line-clamp-1 mt-0.5">{coupon.description}</p>
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-lg font-bold text-foreground">
+              {coupon.amountSol} <span className="text-sm font-semibold text-muted">SOL</span>
+            </p>
+            <p className="text-xs text-muted">{isExpired ? "Expirado" : `Vence ${expiryDate}`}</p>
           </div>
         </div>
 
-        <div className="mt-4 flex gap-2">
+        {/* Actions */}
+        <div className="shrink-0 flex gap-2">
           {!isExpired && (
             <button
               onClick={() => setShowQR(true)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-foreground py-3 text-sm font-semibold text-background transition active:scale-95"
+              className="rounded-2xl border border-border-low bg-card px-4 py-2 text-sm font-bold text-foreground transition active:scale-95"
+              title="Mostrar QR"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-              </svg>
-              Mostrar QR
+              📱
             </button>
           )}
           <button
             onClick={() => navigate(`/offer/${coupon.pda}`)}
-            className="rounded-2xl border border-border-low px-4 py-3 text-sm font-medium text-muted transition active:scale-95"
+            className="rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-primary-fg transition active:scale-95"
           >
-            Ver oferta
+            Ver
           </button>
         </div>
       </div>
@@ -150,10 +153,10 @@ export function MyCouponsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 px-4 py-6">
+    <div className="mx-auto max-w-lg space-y-8 px-4 py-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Mis Cupones</h1>
-        <p className="mt-1 text-sm text-muted">Mostrá el QR al comercio para canjear.</p>
+        <h1 className="text-3xl font-black text-foreground">Mis Cupones</h1>
+        <p className="mt-2 text-sm text-muted">Mostrá el QR al comercio para canjear.</p>
       </div>
 
       {/* ¿Cómo funciona? */}

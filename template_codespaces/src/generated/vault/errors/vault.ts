@@ -14,60 +14,48 @@ import {
 } from "@solana/kit";
 import { VAULT_PROGRAM_ADDRESS } from "../programs";
 
-/** InvalidAmount: Invalid amount */
-export const VAULT_ERROR__INVALID_AMOUNT = 0x1770; // 6000
-/** InvalidFeeBps: Invalid fee bps */
-export const VAULT_ERROR__INVALID_FEE_BPS = 0x1771; // 6001
-/** InvalidExpiry: Invalid expiry */
-export const VAULT_ERROR__INVALID_EXPIRY = 0x1772; // 6002
-/** InvalidStatus: Invalid offer status for this action */
-export const VAULT_ERROR__INVALID_STATUS = 0x1773; // 6003
-/** OfferExpired: Offer already expired */
-export const VAULT_ERROR__OFFER_EXPIRED = 0x1774; // 6004
-/** MerchantCannotBuyOwnOffer: Merchant cannot buy own offer */
-export const VAULT_ERROR__MERCHANT_CANNOT_BUY_OWN_OFFER = 0x1775; // 6005
-/** UnauthorizedMerchant: Only the offer merchant can redeem */
-export const VAULT_ERROR__UNAUTHORIZED_MERCHANT = 0x1776; // 6006
-/** UnauthorizedBuyer: Only the offer buyer can be used */
-export const VAULT_ERROR__UNAUTHORIZED_BUYER = 0x1777; // 6007
-/** UnauthorizedPlatform: Only the configured platform account can be used */
-export const VAULT_ERROR__UNAUTHORIZED_PLATFORM = 0x1778; // 6008
-/** NotExpiredYet: Offer is not expired yet */
-export const VAULT_ERROR__NOT_EXPIRED_YET = 0x1779; // 6009
-/** MathOverflow: Math overflow */
-export const VAULT_ERROR__MATH_OVERFLOW = 0x177a; // 6010
-/** InsufficientEscrowBalance: Escrow balance is insufficient */
-export const VAULT_ERROR__INSUFFICIENT_ESCROW_BALANCE = 0x177b; // 6011
+/** ProductIdTooLong: El product_id supera los 32 caracteres permitidos */
+export const VAULT_ERROR__PRODUCT_ID_TOO_LONG = 0x1770; // 6000
+/** NameTooLong: El nombre supera los 64 caracteres permitidos */
+export const VAULT_ERROR__NAME_TOO_LONG = 0x1771; // 6001
+/** DescriptionTooLong: La descripcion supera los 256 caracteres permitidos */
+export const VAULT_ERROR__DESCRIPTION_TOO_LONG = 0x1772; // 6002
+/** MetadataUriTooLong: La URI de metadata supera los 200 caracteres permitidos */
+export const VAULT_ERROR__METADATA_URI_TOO_LONG = 0x1773; // 6003
+/** InvalidPrice: El precio debe ser mayor a cero */
+export const VAULT_ERROR__INVALID_PRICE = 0x1774; // 6004
+/** InvalidStock: El stock debe ser mayor a cero */
+export const VAULT_ERROR__INVALID_STOCK = 0x1775; // 6005
+/** ProductNotActive: El producto no esta activo */
+export const VAULT_ERROR__PRODUCT_NOT_ACTIVE = 0x1776; // 6006
+/** OutOfStock: No hay stock disponible */
+export const VAULT_ERROR__OUT_OF_STOCK = 0x1777; // 6007
+/** Unauthorized: No tienes autorizacion para esta operacion */
+export const VAULT_ERROR__UNAUTHORIZED = 0x1778; // 6008
 
 export type VaultError =
-  | typeof VAULT_ERROR__INSUFFICIENT_ESCROW_BALANCE
-  | typeof VAULT_ERROR__INVALID_AMOUNT
-  | typeof VAULT_ERROR__INVALID_EXPIRY
-  | typeof VAULT_ERROR__INVALID_FEE_BPS
-  | typeof VAULT_ERROR__INVALID_STATUS
-  | typeof VAULT_ERROR__MATH_OVERFLOW
-  | typeof VAULT_ERROR__MERCHANT_CANNOT_BUY_OWN_OFFER
-  | typeof VAULT_ERROR__NOT_EXPIRED_YET
-  | typeof VAULT_ERROR__OFFER_EXPIRED
-  | typeof VAULT_ERROR__UNAUTHORIZED_BUYER
-  | typeof VAULT_ERROR__UNAUTHORIZED_MERCHANT
-  | typeof VAULT_ERROR__UNAUTHORIZED_PLATFORM;
+  | typeof VAULT_ERROR__DESCRIPTION_TOO_LONG
+  | typeof VAULT_ERROR__INVALID_PRICE
+  | typeof VAULT_ERROR__INVALID_STOCK
+  | typeof VAULT_ERROR__METADATA_URI_TOO_LONG
+  | typeof VAULT_ERROR__NAME_TOO_LONG
+  | typeof VAULT_ERROR__OUT_OF_STOCK
+  | typeof VAULT_ERROR__PRODUCT_ID_TOO_LONG
+  | typeof VAULT_ERROR__PRODUCT_NOT_ACTIVE
+  | typeof VAULT_ERROR__UNAUTHORIZED;
 
 let vaultErrorMessages: Record<VaultError, string> | undefined;
 if (process.env.NODE_ENV !== "production") {
   vaultErrorMessages = {
-    [VAULT_ERROR__INSUFFICIENT_ESCROW_BALANCE]: `Escrow balance is insufficient`,
-    [VAULT_ERROR__INVALID_AMOUNT]: `Invalid amount`,
-    [VAULT_ERROR__INVALID_EXPIRY]: `Invalid expiry`,
-    [VAULT_ERROR__INVALID_FEE_BPS]: `Invalid fee bps`,
-    [VAULT_ERROR__INVALID_STATUS]: `Invalid offer status for this action`,
-    [VAULT_ERROR__MATH_OVERFLOW]: `Math overflow`,
-    [VAULT_ERROR__MERCHANT_CANNOT_BUY_OWN_OFFER]: `Merchant cannot buy own offer`,
-    [VAULT_ERROR__NOT_EXPIRED_YET]: `Offer is not expired yet`,
-    [VAULT_ERROR__OFFER_EXPIRED]: `Offer already expired`,
-    [VAULT_ERROR__UNAUTHORIZED_BUYER]: `Only the offer buyer can be used`,
-    [VAULT_ERROR__UNAUTHORIZED_MERCHANT]: `Only the offer merchant can redeem`,
-    [VAULT_ERROR__UNAUTHORIZED_PLATFORM]: `Only the configured platform account can be used`,
+    [VAULT_ERROR__DESCRIPTION_TOO_LONG]: `La descripcion supera los 256 caracteres permitidos`,
+    [VAULT_ERROR__INVALID_PRICE]: `El precio debe ser mayor a cero`,
+    [VAULT_ERROR__INVALID_STOCK]: `El stock debe ser mayor a cero`,
+    [VAULT_ERROR__METADATA_URI_TOO_LONG]: `La URI de metadata supera los 200 caracteres permitidos`,
+    [VAULT_ERROR__NAME_TOO_LONG]: `El nombre supera los 64 caracteres permitidos`,
+    [VAULT_ERROR__OUT_OF_STOCK]: `No hay stock disponible`,
+    [VAULT_ERROR__PRODUCT_ID_TOO_LONG]: `El product_id supera los 32 caracteres permitidos`,
+    [VAULT_ERROR__PRODUCT_NOT_ACTIVE]: `El producto no esta activo`,
+    [VAULT_ERROR__UNAUTHORIZED]: `No tienes autorizacion para esta operacion`,
   };
 }
 

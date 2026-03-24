@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { CATEGORY_LABELS, CATEGORY_EMOJI, type OfferRecord } from "../lib/backend";
+import { CATEGORY_EMOJI, type OfferRecord } from "../lib/backend";
 
 type Props = { offer: OfferRecord };
 
@@ -12,55 +12,35 @@ export function OfferCard({ offer }: Props) {
 
   return (
     <div
-      className={`flex flex-col overflow-hidden rounded-3xl border bg-card shadow-sm transition ${
-        isExpired ? "border-border-low opacity-60" : "border-border-low"
+      className={`flex items-center gap-4 rounded-3xl border px-5 py-4 transition ${
+        isExpired ? "border-border-low bg-card opacity-60" : "border-border-low bg-card shadow-lg"
       }`}
+      onClick={() => navigate(`/offer/${offer.pda}`)}
+      role="button"
+      tabIndex={0}
     >
-      {/* Color header strip */}
-      <div className="flex h-28 items-center justify-center bg-primary-soft">
-        <span className="text-5xl">{CATEGORY_EMOJI[offer.category]}</span>
-      </div>
+      {/* Emoji */}
+      <div className="shrink-0 text-4xl">{CATEGORY_EMOJI[offer.category]}</div>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        {/* Category + expired badge */}
-        <div className="flex items-center justify-between">
-          <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
-            {CATEGORY_LABELS[offer.category]}
-          </span>
+      {/* Info */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-lg text-foreground truncate">{offer.title}</h3>
+            <p className="text-sm text-muted line-clamp-1 mt-0.5">{offer.description}</p>
+          </div>
           {isExpired && (
-            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
-              Expirado
+            <span className="shrink-0 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-600 dark:bg-red-900/20 dark:text-red-400">
+              Vencido
             </span>
           )}
         </div>
-
-        {/* Title */}
-        <h3 className="font-bold leading-snug text-foreground">{offer.title}</h3>
-        <p className="line-clamp-2 text-xs text-muted">{offer.description}</p>
-
-        {/* Price */}
-        <p className="mt-1 text-2xl font-black text-foreground">
-          {offer.amountSol}
-          <span className="ml-1 text-sm font-semibold text-muted">SOL</span>
-        </p>
-        <p className="text-xs text-muted">
-          Comisión {offer.platformFeeBps / 100}% · Vence {expiryDate}
-        </p>
-
-        {/* Merchant */}
-        <p className="truncate font-mono text-xs text-muted">
-          {offer.merchantWallet.slice(0, 6)}...{offer.merchantWallet.slice(-4)}
-        </p>
-
-        {/* Action */}
-        {!isExpired && (
-          <button
-            onClick={() => navigate(`/offer/${offer.pda}`)}
-            className="mt-auto w-full rounded-2xl bg-primary py-3 text-sm font-bold text-primary-fg transition active:scale-95"
-          >
-            Reclamar cupón
-          </button>
-        )}
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-lg font-bold text-foreground">
+            {offer.amountSol} <span className="text-sm font-semibold text-muted">SOL</span>
+          </p>
+          <p className="text-xs text-muted">{isExpired ? "" : `Vence ${expiryDate}`}</p>
+        </div>
       </div>
     </div>
   );

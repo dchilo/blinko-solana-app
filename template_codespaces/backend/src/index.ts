@@ -1,220 +1,258 @@
-import Fastify from "fastify";
-import cors from "@fastify/cors";
-import jwt from "jsonwebtoken";
-import nacl from "tweetnacl";
-import bs58 from "bs58";
-import { PublicKey } from "@solana/web3.js";
-import { z } from "zod";
+// import Fastify from "fastify";
+// import cors from "@fastify/cors";
+// import jwt from "jsonwebtoken";
+// import nacl from "tweetnacl";
+// import bs58 from "bs58";
+// import { PublicKey } from "@solana/web3.js";
+// import { z } from "zod";
+// import { createClient } from "@supabase/supabase-js";
 
-const app = Fastify({ logger: true });
+// // ─── Configuración Inicial ───────────────────────────────────────────────────
+// const app = Fastify({ logger: true });
 
-const PORT = Number(process.env.PORT ?? 4000);
-const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-me";
+// const PORT = Number(process.env.PORT ?? 4000);
+// const JWT_SECRET = process.env.JWT_SECRET ;
 
-// ─── Auth state ──────────────────────────────────────────────────────────────
+// // ⚠️ IMPORTANTE: En producción (Netlify) pondrás estas variables en su panel
+// const SUPABASE_URL = process.env.SUPABASE_URL ;
+// // Usa la SERVICE_ROLE_KEY (la secreta), NO la public (anon) key para el backend
+// const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY ; 
 
-const nonces = new Map<string, { nonce: string; expiresAt: number; used: boolean }>();
+// const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-// ─── Offer store (in-memory, replace with DB later) ──────────────────────────
+// // ─── Schemas ─────────────────────────────────────────────────────────────────
+// const nonceRequestSchema = z.object({ walletAddress: z.string().min(32) });
+// const verifyRequestSchema = z.object({ walletAddress: z.string().min(32), message: z.string().min(1), signature: z.string().min(1) });
+// const createOfferSchema = z.object({
+//   pda: z.string().min(32),
+//   offerId: z.number().int().nonnegative(),
+//   amountSol: z.number().positive(),
+//   title: z.string().min(1).max(80),
+//   description: z.string().min(1).max(400),
+//   category: z.enum(["food", "retail", "services", "entertainment", "other"]),
+//   expiryTs: z.number().int().positive(),
+//   platformFeeBps: z.number().int().min(0).max(10000).default(500),
+// });
+// const redeemSchema = z.object({
+//   pda: z.string().min(32),
+//   offerId: z.number().int().nonnegative(),
+//   amountSol: z.number().positive(),
+//   offerTitle: z.string().min(1),
+//   customerWallet: z.string().min(32),
+// });
 
-export type OfferCategory = "food" | "retail" | "services" | "entertainment" | "other";
+// // ─── Helpers ─────────────────────────────────────────────────────────────────
+// function decodeSignature(signature: string): Uint8Array {
+//   try { return bs58.decode(signature); } catch { return Uint8Array.from(Buffer.from(signature, "base64")); }
+// }
+// function makeNonce(): string { return Math.random().toString(36).slice(2, 12); }
+// function buildLoginMessage(walletAddress: string, nonce: string): string {
+//   return ["Sign in to Local Escrow MVP", `Wallet: ${walletAddress}`, `Nonce: ${nonce}`, `IssuedAt: ${new Date().toISOString()}`].join("\n");
+// }
+// function getWalletFromToken(authHeader: string | undefined): string | null {
+//   if (!authHeader?.startsWith("Bearer ")) return null;
+//   try {
+//     const token = authHeader.slice("Bearer ".length).trim();
+//     const payload = jwt.verify(token, JWT_SECRET) as { walletAddress?: string; sub?: string };
+//     return payload.walletAddress ?? payload.sub ?? null;
+//   } catch { return null; }
+// }
 
-export type OfferRecord = {
-  pda: string;
-  merchantWallet: string;
-  offerId: number;
-  amountSol: number;
-  title: string;
-  description: string;
-  category: OfferCategory;
-  expiryTs: number;
-  platformFeeBps: number;
-  createdAt: number;
-};
+// // Transformadores de DB (snake_case) a Frontend (camelCase)
+// const mapOffer = (row: any) => ({
+//   pda: row.pda,
+//   merchantWallet: row.merchant_wallet,
+//   offerId: Number(row.offer_id),
+//   amountSol: Number(row.amount_sol),
+//   title: row.title,
+//   description: row.description,
+//   category: row.category,
+//   expiryTs: Number(row.expiry_ts),
+//   platformFeeBps: Number(row.platform_fee_bps),
+//   createdAt: Number(row.created_at)
+// });
 
-const offers = new Map<string, OfferRecord>(); // key = pda
+// const mapTransaction = (row: any) => ({
+//   id: row.id,
+//   merchantWallet: row.merchant_wallet,
+//   customerWallet: row.customer_wallet,
+//   offerId: Number(row.offer_id),
+//   offerTitle: row.offer_title,
+//   amountSol: Number(row.amount_sol),
+//   merchantEarningSol: Number(row.merchant_earning_sol),
+//   platformFeeSol: Number(row.platform_fee_sol),
+//   timestamp: Number(row.timestamp),
+//   status: row.status
+// });
 
-// ─── Schemas ─────────────────────────────────────────────────────────────────
+// // ─── Rutas ───────────────────────────────────────────────────────────────────
+// app.register(cors, { origin: true, credentials: true });
+// app.get("/health", async () => ({ ok: true }));
 
-const nonceRequestSchema = z.object({
-  walletAddress: z.string().min(32),
-});
+// // -- Auth --
+// app.post("/auth/nonce", async (request, reply) => {
+//   const parsed = nonceRequestSchema.safeParse(request.body);
+//   if (!parsed.success) return reply.code(400).send({ error: "Invalid payload" });
+  
+//   const { walletAddress } = parsed.data;
+//   try { new PublicKey(walletAddress); } catch { return reply.code(400).send({ error: "Invalid wallet address" }); }
 
-const verifyRequestSchema = z.object({
-  walletAddress: z.string().min(32),
-  message: z.string().min(1),
-  signature: z.string().min(1),
-});
+//   const nonce = makeNonce();
+//   const expiresAt = Date.now() + 5 * 60 * 1000;
+  
+//   await supabase.from('nonces').upsert({
+//     wallet_address: walletAddress, nonce, expires_at: expiresAt, used: false
+//   });
 
-const createOfferSchema = z.object({
-  pda: z.string().min(32),
-  offerId: z.number().int().nonnegative(),
-  amountSol: z.number().positive(),
-  title: z.string().min(1).max(80),
-  description: z.string().min(1).max(400),
-  category: z.enum(["food", "retail", "services", "entertainment", "other"]),
-  expiryTs: z.number().int().positive(),
-  platformFeeBps: z.number().int().min(0).max(10000).default(500),
-});
+//   return reply.send({ walletAddress, nonce, message: buildLoginMessage(walletAddress, nonce), expiresAt });
+// });
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// app.post("/auth/verify", async (request, reply) => {
+//   const parsed = verifyRequestSchema.safeParse(request.body);
+//   if (!parsed.success) return reply.code(400).send({ error: "Invalid payload" });
 
-function decodeSignature(signature: string): Uint8Array {
-  try {
-    return bs58.decode(signature);
-  } catch {
-    return Uint8Array.from(Buffer.from(signature, "base64"));
-  }
-}
+//   const { walletAddress, message, signature } = parsed.data;
+//   const { data: nonceData } = await supabase.from('nonces').select('*').eq('wallet_address', walletAddress).single();
 
-function makeNonce(): string {
-  return Math.random().toString(36).slice(2, 12);
-}
+//   if (!nonceData) return reply.code(400).send({ error: "Nonce not found" });
+//   if (nonceData.used) return reply.code(400).send({ error: "Nonce already used" });
+//   if (Date.now() > Number(nonceData.expires_at)) return reply.code(400).send({ error: "Nonce expired" });
+//   if (!message.includes(`Nonce: ${nonceData.nonce}`)) return reply.code(400).send({ error: "Nonce mismatch" });
 
-function buildLoginMessage(walletAddress: string, nonce: string): string {
-  return [
-    "Sign in to Local Escrow MVP",
-    `Wallet: ${walletAddress}`,
-    `Nonce: ${nonce}`,
-    `IssuedAt: ${new Date().toISOString()}`,
-  ].join("\n");
-}
+//   try {
+//     const valid = nacl.sign.detached.verify(new TextEncoder().encode(message), decodeSignature(signature), new PublicKey(walletAddress).toBytes());
+//     if (!valid) return reply.code(401).send({ error: "Invalid signature" });
 
-function getWalletFromToken(authHeader: string | undefined): string | null {
-  if (!authHeader?.startsWith("Bearer ")) return null;
-  try {
-    const token = authHeader.slice("Bearer ".length).trim();
-    const payload = jwt.verify(token, JWT_SECRET) as { walletAddress?: string; sub?: string };
-    return payload.walletAddress ?? payload.sub ?? null;
-  } catch {
-    return null;
-  }
-}
+//     await supabase.from('nonces').update({ used: true }).eq('wallet_address', walletAddress);
+//     const token = jwt.sign({ sub: walletAddress, walletAddress }, JWT_SECRET, { expiresIn: "7d" });
+//     return reply.send({ token, walletAddress });
+//   } catch (error) {
+//     return reply.code(500).send({ error: "Failed to verify signature" });
+//   }
+// });
 
-// ─── CORS ─────────────────────────────────────────────────────────────────────
+// app.get("/auth/me", async (request, reply) => {
+//   const wallet = getWalletFromToken(request.headers.authorization);
+//   if (!wallet) return reply.code(401).send({ error: "Invalid token" });
+//   return reply.send({ walletAddress: wallet });
+// });
 
-app.register(cors, { origin: true, credentials: true });
+// // -- Offers --
+// app.get("/offers", async (_request, reply) => {
+//   const { data } = await supabase.from('offers').select('*').order('created_at', { ascending: false });
+//   return reply.send((data || []).map(mapOffer));
+// });
 
-// ─── Health ───────────────────────────────────────────────────────────────────
+// app.get("/offers/:pda", async (request, reply) => {
+//   const { pda } = request.params as { pda: string };
+//   const { data, error } = await supabase.from('offers').select('*').eq('pda', pda).single();
+//   if (error || !data) return reply.code(404).send({ error: "Offer not found" });
+//   return reply.send(mapOffer(data));
+// });
 
-app.get("/health", async () => ({ ok: true }));
+// app.post("/offers", async (request, reply) => {
+//   const wallet = getWalletFromToken(request.headers.authorization);
+//   if (!wallet) return reply.code(401).send({ error: "Unauthorized" });
 
-// ─── Auth routes ──────────────────────────────────────────────────────────────
+//   const parsed = createOfferSchema.safeParse(request.body);
+//   if (!parsed.success) return reply.code(400).send({ error: "Invalid payload" });
 
-app.post("/auth/nonce", async (request, reply) => {
-  const parsed = nonceRequestSchema.safeParse(request.body);
-  if (!parsed.success) return reply.code(400).send({ error: "Invalid payload" });
+//   const d = parsed.data;
+//   const { data, error } = await supabase.from('offers').insert({
+//     pda: d.pda, merchant_wallet: wallet, offer_id: d.offerId, amount_sol: d.amountSol,
+//     title: d.title, description: d.description, category: d.category,
+//     expiry_ts: d.expiryTs, platform_fee_bps: d.platformFeeBps, created_at: Date.now()
+//   }).select().single();
 
-  const { walletAddress } = parsed.data;
-  try { new PublicKey(walletAddress); } catch {
-    return reply.code(400).send({ error: "Invalid wallet address" });
-  }
+//   if (error) return reply.code(409).send({ error: "Error creating offer or PDA already exists" });
+//   return reply.code(201).send(mapOffer(data));
+// });
 
-  const nonce = makeNonce();
-  const expiresAt = Date.now() + 5 * 60 * 1000;
-  nonces.set(walletAddress, { nonce, expiresAt, used: false });
-  const message = buildLoginMessage(walletAddress, nonce);
-  return reply.send({ walletAddress, nonce, message, expiresAt });
-});
+// app.delete("/offers/:pda", async (request, reply) => {
+//   const wallet = getWalletFromToken(request.headers.authorization);
+//   if (!wallet) return reply.code(401).send({ error: "Unauthorized" });
 
-app.post("/auth/verify", async (request, reply) => {
-  const parsed = verifyRequestSchema.safeParse(request.body);
-  if (!parsed.success) return reply.code(400).send({ error: "Invalid payload" });
+//   const { pda } = request.params as { pda: string };
+//   const { data: offer } = await supabase.from('offers').select('merchant_wallet').eq('pda', pda).single();
+  
+//   if (!offer) return reply.code(404).send({ error: "Offer not found" });
+//   if (offer.merchant_wallet !== wallet) return reply.code(403).send({ error: "Forbidden" });
 
-  const { walletAddress, message, signature } = parsed.data;
-  const nonceData = nonces.get(walletAddress);
+//   await supabase.from('offers').delete().eq('pda', pda);
+//   return reply.send({ ok: true });
+// });
 
-  if (!nonceData) return reply.code(400).send({ error: "Nonce not found" });
-  if (nonceData.used) return reply.code(400).send({ error: "Nonce already used" });
-  if (Date.now() > nonceData.expiresAt) return reply.code(400).send({ error: "Nonce expired" });
-  if (!message.includes(`Nonce: ${nonceData.nonce}`)) return reply.code(400).send({ error: "Nonce mismatch" });
+// // -- Redeem --
+// app.post("/redeem", async (request, reply) => {
+//   const wallet = getWalletFromToken(request.headers.authorization);
+//   if (!wallet) return reply.code(401).send({ error: "Unauthorized" });
 
-  try {
-    const publicKey = new PublicKey(walletAddress);
-    const messageBytes = new TextEncoder().encode(message);
-    const signatureBytes = decodeSignature(signature);
-    const valid = nacl.sign.detached.verify(messageBytes, signatureBytes, publicKey.toBytes());
-    if (!valid) return reply.code(401).send({ error: "Invalid signature" });
+//   const parsed = redeemSchema.safeParse(request.body);
+//   if (!parsed.success) return reply.code(400).send({ error: "Invalid payload" });
 
-    nonceData.used = true;
-    const token = jwt.sign({ sub: walletAddress, walletAddress }, JWT_SECRET, { expiresIn: "7d" });
-    return reply.send({ token, walletAddress });
-  } catch (error) {
-    request.log.error(error);
-    return reply.code(500).send({ error: "Failed to verify signature" });
-  }
-});
+//   const d = parsed.data;
+//   const platformFeeSol = d.amountSol * (500 / 10000);
+//   const transactionId = `tx_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-app.get("/auth/me", async (request, reply) => {
-  const wallet = getWalletFromToken(request.headers.authorization);
-  if (!wallet) return reply.code(401).send({ error: "Invalid token" });
-  return reply.send({ walletAddress: wallet });
-});
+//   const { data, error } = await supabase.from('transactions').insert({
+//     id: transactionId, merchant_wallet: wallet, customer_wallet: d.customerWallet,
+//     offer_id: d.offerId, offer_title: d.offerTitle, amount_sol: d.amountSol,
+//     merchant_earning_sol: (d.amountSol - platformFeeSol), platform_fee_sol: platformFeeSol,
+//     timestamp: Date.now(), status: "completed"
+//   }).select().single();
 
-// ─── Offer routes ─────────────────────────────────────────────────────────────
+//   if (error) return reply.code(500).send({ error: "Failed to record transaction" });
+//   return reply.code(201).send(mapTransaction(data));
+// });
 
-// List all offers
-app.get("/offers", async (_request, reply) => {
-  const list = Array.from(offers.values()).sort((a, b) => b.createdAt - a.createdAt);
-  return reply.send(list);
-});
+// // -- Dashboard --
+// app.get("/merchant/transactions", async (request, reply) => {
+//   const wallet = getWalletFromToken(request.headers.authorization);
+//   if (!wallet) return reply.code(401).send({ error: "Unauthorized" });
 
-// Get single offer by PDA
-app.get("/offers/:pda", async (request, reply) => {
-  const { pda } = request.params as { pda: string };
-  const offer = offers.get(pda);
-  if (!offer) return reply.code(404).send({ error: "Offer not found" });
-  return reply.send(offer);
-});
+//   const { data } = await supabase.from('transactions').select('*').eq('merchant_wallet', wallet).order('timestamp', { ascending: false });
+//   return reply.send((data || []).map(mapTransaction));
+// });
 
-// Create offer metadata (requires JWT)
-app.post("/offers", async (request, reply) => {
-  const wallet = getWalletFromToken(request.headers.authorization);
-  if (!wallet) return reply.code(401).send({ error: "Unauthorized" });
+// app.get("/merchant/stats", async (request, reply) => {
+//   const wallet = getWalletFromToken(request.headers.authorization);
+//   if (!wallet) return reply.code(401).send({ error: "Unauthorized" });
 
-  const parsed = createOfferSchema.safeParse(request.body);
-  if (!parsed.success) return reply.code(400).send({ error: "Invalid payload", details: parsed.error.flatten() });
+//   const { data: txs } = await supabase.from('transactions').select('*').eq('merchant_wallet', wallet);
+//   const merchantTxs = (txs || []).map(mapTransaction);
 
-  const data = parsed.data;
+//   const today = new Date();
+//   today.setHours(0, 0, 0, 0);
+  
+//   const todayTxs = merchantTxs.filter((tx) => new Date(tx.timestamp) >= today);
+//   const totalIncomeSol = merchantTxs.reduce((sum, tx) => sum + tx.merchantEarningSol, 0);
+//   const totalPlatformFee = merchantTxs.reduce((sum, tx) => sum + tx.platformFeeSol, 0);
 
-  if (offers.has(data.pda)) {
-    return reply.code(409).send({ error: "Offer with this PDA already exists" });
-  }
+//   // Generar datos semanales
+//   const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+//   const weeklyEarnings = [];
+//   for (let i = 6; i >= 0; i--) {
+//     const date = new Date();
+//     date.setDate(date.getDate() - i);
+//     date.setHours(0, 0, 0, 0);
+//     const nextDate = new Date(date);
+//     nextDate.setDate(nextDate.getDate() + 1);
+    
+//     const dayTxs = merchantTxs.filter((tx) => new Date(tx.timestamp) >= date && new Date(tx.timestamp) < nextDate);
+//     weeklyEarnings.push({
+//       day: i === 0 ? "Hoy" : days[date.getDay()],
+//       earnings: dayTxs.reduce((sum, tx) => sum + tx.merchantEarningSol, 0)
+//     });
+//   }
 
-  const record: OfferRecord = {
-    pda: data.pda,
-    merchantWallet: wallet,
-    offerId: data.offerId,
-    amountSol: data.amountSol,
-    title: data.title,
-    description: data.description,
-    category: data.category,
-    expiryTs: data.expiryTs,
-    platformFeeBps: data.platformFeeBps,
-    createdAt: Date.now(),
-  };
+//   return reply.send({
+//     totalIncomeSol, totalCouponsRedeemed: merchantTxs.length, couponsRedeemedToday: todayTxs.length,
+//     totalPlatformFee, weeklyEarnings
+//   });
+// });
 
-  offers.set(data.pda, record);
-  return reply.code(201).send(record);
-});
-
-// Delete offer (only by merchant who created it)
-app.delete("/offers/:pda", async (request, reply) => {
-  const wallet = getWalletFromToken(request.headers.authorization);
-  if (!wallet) return reply.code(401).send({ error: "Unauthorized" });
-
-  const { pda } = request.params as { pda: string };
-  const offer = offers.get(pda);
-  if (!offer) return reply.code(404).send({ error: "Offer not found" });
-  if (offer.merchantWallet !== wallet) return reply.code(403).send({ error: "Forbidden" });
-
-  offers.delete(pda);
-  return reply.send({ ok: true });
-});
-
-// ─── Start ────────────────────────────────────────────────────────────────────
-
-app.listen({ port: PORT, host: "0.0.0.0" }).catch((error) => {
-  app.log.error(error);
-  process.exit(1);
-});
+// // ─── Start ────────────────────────────────────────────────────────────────────
+// app.listen({ port: PORT, host: "0.0.0.0" }).catch((error) => {
+//   app.log.error(error);
+//   process.exit(1);
+// });

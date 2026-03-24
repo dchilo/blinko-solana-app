@@ -7,3 +7,5 @@
  */
 
 export * from "./offer";
+export * from "./productAccount";
+export * from "./purchaseRecord";

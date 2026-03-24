@@ -67,7 +67,7 @@ export function OfferDetailPage() {
 
   const pdaBalance = useBalance(pda as Address | undefined);
   const pdaSol = pdaBalance?.lamports ? Number(pdaBalance.lamports) / 1e9 : 0;
-  const isBought = pdaSol >= (offer?.amountSol ?? 0) * 0.99;
+  const isBought = pdaSol > 0 && pdaSol >= (offer?.amountSol ?? 0) * 0.99;
 
   useEffect(() => {
     if (!pda) return;
@@ -223,22 +223,42 @@ export function OfferDetailPage() {
         {/* Acciones */}
         <div className="rounded-3xl border border-border-low bg-card p-6 shadow-sm">
           {status !== "connected" && (
-            <p className="text-center text-sm text-muted">Conectá tu wallet para comprar este cupón.</p>
-          )}
-
-          {status === "connected" && !isMerchant && !isBought && !isExpired && (
             <button
-              onClick={handleBuy}
-              disabled={isSending}
-              className="w-full rounded-2xl bg-foreground py-4 text-sm font-bold text-background transition active:scale-95 disabled:opacity-40"
+              onClick={() => window.location.reload()}
+              className="w-full rounded-2xl border border-primary py-4 text-sm font-bold text-primary transition active:scale-95"
             >
-              {isSending ? "Procesando..." : `Comprar por ${offer.amountSol} SOL`}
+              🔐 Conectá Wallet para Comprar
             </button>
           )}
 
-          {status === "connected" && !isMerchant && isBought && (
-            <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-center text-sm font-medium text-green-700 dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400">
-              Este cupón ya fue comprado.
+          {status === "connected" && isMerchant && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-sm text-amber-700 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-400">
+              📌 Sos el mencionante de esta oferta
+            </div>
+          )}
+
+          {status === "connected" && !isMerchant && !isExpired && (
+            <div className="space-y-3">
+              <button
+                onClick={handleBuy}
+                disabled={isSending}
+                className="w-full rounded-2xl bg-foreground py-4 text-sm font-bold text-background transition active:scale-95 disabled:opacity-40"
+              >
+                {isSending ? "Procesando compra..." : `💳 Comprar por ${offer.amountSol} SOL`}
+              </button>
+              {isBought && (
+                <div className="rounded-2xl border border-green-200 bg-green-50 p-3 text-center text-xs font-medium text-green-700 dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400">
+                  ✓ Ya compraste este cupón
+                </div>
+              )}
+            </div>
+          )}
+
+          {status === "connected" && !isMerchant && isExpired && (
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-center text-sm text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
+                ❌ Esta oferta expiró el {expiryDate}
+              </div>
             </div>
           )}
 
@@ -247,7 +267,7 @@ export function OfferDetailPage() {
               <p className="text-sm font-medium text-foreground">Canjear cupón</p>
               <p className="text-xs text-muted">Ingresá la dirección del comprador (escaneá el QR del cliente).</p>
               <input
-                className="w-full rounded-2xl border border-border-low bg-card px-4 py-3 text-sm outline-none focus:border-foreground/30"
+                className="w-full rounded-2xl border border-border-low bg-input px-4 py-3 text-sm outline-none focus:border-foreground/30"
                 placeholder="Wallet del comprador"
                 value={buyerForRedeem}
                 onChange={(e) => setBuyerForRedeem(e.target.value)}
@@ -255,15 +275,19 @@ export function OfferDetailPage() {
               <button
                 onClick={handleRedeem}
                 disabled={isSending || !buyerForRedeem}
-                className="w-full rounded-2xl bg-foreground py-4 text-sm font-bold text-background transition active:scale-95 disabled:opacity-40"
+                className="w-full rounded-2xl bg-green-600 py-4 text-sm font-bold text-white transition active:scale-95 disabled:opacity-40"
               >
-                {isSending ? "Canjeando..." : "Canjear y recibir pago"}
+                {isSending ? "Canjeando..." : "✓ Canjear y recibir pago"}
               </button>
             </div>
           )}
 
           {txStatus && (
-            <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${txStatus.startsWith("Error") ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400" : "border-border-low bg-cream/50"}`}>
+            <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
+              txStatus.startsWith("Error")
+                ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400"
+                : "border-green-200 bg-green-50 text-green-700 dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400"
+            }`}>
               {txStatus}
             </div>
           )}
